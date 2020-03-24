@@ -65,7 +65,8 @@
 以下库都是pip install 安装， 有特殊情况我会单独说明
 例如 pip install pandas  -i https://pypi.tuna.tsinghua.edu.cn/simple
 
-- pandas:
+- seaborn: 是一个基于matplotlib的数据分析库
+- misssingno：是一个基于pandas的库，用于可视化缺失NAN数据
 
 
 ```python
@@ -121,6 +122,8 @@ print('TestA data shape:',Test_data.shape)
 
 ```python
 ## 2) 简略观察数据(head()+shape)
+# DataFrame.head() 显示前5行的数据
+# DataFrame.tail() 显示后5行的数据
 Train_data.head().append(Train_data.tail())
 ```
 
@@ -1245,6 +1248,7 @@ Test_data.describe()
 
 ```python
 ## 2) 通过info()来熟悉数据类型
+# 打印DataFrame摘要
 Train_data.info()
 ```
 
@@ -1419,7 +1423,7 @@ Test_data.isnull().sum()
 
 ```python
 # nan可视化
-missing = Train_data.isnull().sum()
+missing = Train_data.isnull().sum() # 统计缺失值数量
 missing = missing[missing > 0]
 missing.sort_values(inplace=True)
 missing.plot.bar()
@@ -1442,13 +1446,14 @@ missing.plot.bar()
 ```python
 # 可视化看下缺省值
 # 取250个样本作为观察值
-msno.matrix(Train_data.sample(250))
+# 观察所有样本：参数设置为Train_data.shape[0]，所有样本数
+msno.matrix(Train_data.sample(Train_data.shape[0]))
 ```
 
 
 
 
-    <matplotlib.axes._subplots.AxesSubplot at 0x1bb0c384748>
+    <matplotlib.axes._subplots.AxesSubplot at 0x27dd6a48978>
 
 
 
@@ -1458,18 +1463,20 @@ msno.matrix(Train_data.sample(250))
 
 
 ```python
-msno.bar(Train_data.sample(1000))
+# 以柱状图的形式反映 缺失值总量上的变化
+# msno.bar(Train_data.sample(1000))
+msno.bar(Train_data.sample(Train_data.shape[0]))
 ```
 
 
 
 
-    <matplotlib.axes._subplots.AxesSubplot at 0x7ff0190fbda0>
+    <matplotlib.axes._subplots.AxesSubplot at 0x27dd6187860>
 
 
 
 
-![png](EDA_files/EDA_26_1.png)
+![svg](EDA_files/EDA_26_1.svg)
 
 
 
@@ -1497,7 +1504,7 @@ msno.bar(Test_data.sample(1000))
 
 
 
-    <matplotlib.axes._subplots.AxesSubplot at 0x1bb0f245fd0>
+    <matplotlib.axes._subplots.AxesSubplot at 0x27dd88a5f60>
 
 
 
@@ -1660,6 +1667,7 @@ Test_data['notRepairedDamage'].replace('-', np.nan, inplace=True)
 
 
 ```python
+# 对Series里面的每个值进行计数并且排序
 Train_data["seller"].value_counts()
 ```
 
@@ -1687,6 +1695,7 @@ Train_data["offerType"].value_counts()
 
 
 ```python
+# 删除特征严重倾斜，且对结果预测不重要的属性
 del Train_data["seller"]
 del Train_data["offerType"]
 del Test_data["seller"]
@@ -1841,43 +1850,65 @@ Train_data['price'].value_counts()
 
 
 
+**可视化分布**
+seaborn的displot()集合了matplotlib的hist()与核函数估计kdeplot的功能，增加了rugplot分布观测条显示与利用scipy库fit拟合参数分布的新颖用途。
+
+- kde : bool, optional #控制是否显示[核密度估计](https://lotabout.me/2018/kernel-density-estimation/)
+
+- fit : random variable object, optional #控制拟合的参数分布图形
+
+[johnsonsu分布](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.johnsonsu.html#scipy.stats.johnsonsu)
+
+st.norm：连续变量的正态分布
+st.lognorm: 连续变量取对数后的正态分布
+
 
 ```python
 ## 1) 总体分布概况（无界约翰逊分布等）
+# 
 import scipy.stats as st
 y = Train_data['price']
 plt.figure(1); plt.title('Johnson SU')
-sns.distplot(y, kde=False, fit=st.johnsonsu)
+sns.distplot(y, kde=True, fit=st.johnsonsu)
 plt.figure(2); plt.title('Normal')
 sns.distplot(y, kde=False, fit=st.norm)
 plt.figure(3); plt.title('Log Normal')
 sns.distplot(y, kde=False, fit=st.lognorm)
+plt.figure(4); plt.title('Histograms')
+sns.distplot(y, kde=False)
 ```
 
 
 
 
-    <matplotlib.axes._subplots.AxesSubplot at 0x1bb10cad748>
+    <matplotlib.axes._subplots.AxesSubplot at 0x27ddef86668>
 
 
 
 
-![svg](EDA_files/EDA_47_1.svg)
+![svg](EDA_files/EDA_48_1.svg)
 
 
 
-![svg](EDA_files/EDA_47_2.svg)
+![svg](EDA_files/EDA_48_2.svg)
 
 
 
-![svg](EDA_files/EDA_47_3.svg)
+![svg](EDA_files/EDA_48_3.svg)
+
+
+
+![svg](EDA_files/EDA_48_4.svg)
 
 
 价格不服从正态分布，所以在进行回归之前，它必须进行转换。虽然对数变换做得很好，但最佳拟合是无界约翰逊分布
 
+[偏度和峰度](https://blog.csdn.net/qq_36523839/article/details/88671873?depth_1-utm_source=distribute.pc_relevant.none-task&utm_source=distribute.pc_relevant.none-task)
+
 
 ```python
 ## 2) 查看skewness and kurtosis
+# 倾斜和峰态
 sns.distplot(Train_data['price']);
 print("Skewness: %f" % Train_data['price'].skew())
 print("Kurtosis: %f" % Train_data['price'].kurt())
@@ -1888,7 +1919,7 @@ print("Kurtosis: %f" % Train_data['price'].kurt())
     
 
 
-![svg](EDA_files/EDA_49_1.svg)
+![svg](EDA_files/EDA_51_1.svg)
 
 
 
@@ -1969,12 +2000,12 @@ sns.distplot(Train_data.skew(),color='blue',axlabel ='Skewness')
 
 
 
-    <matplotlib.axes._subplots.AxesSubplot at 0x7ff016585e80>
+    <matplotlib.axes._subplots.AxesSubplot at 0x27ddf959390>
 
 
 
 
-![png](EDA_files/EDA_51_1.png)
+![svg](EDA_files/EDA_53_1.svg)
 
 
 
@@ -1985,12 +2016,12 @@ sns.distplot(Train_data.kurt(),color='orange',axlabel ='Kurtness')
 
 
 
-    <matplotlib.axes._subplots.AxesSubplot at 0x7ff00c5ed978>
+    <matplotlib.axes._subplots.AxesSubplot at 0x27dd6b15e48>
 
 
 
 
-![png](EDA_files/EDA_52_1.png)
+![svg](EDA_files/EDA_54_1.svg)
 
 
 skew、kurt说明参考https://www.cnblogs.com/wyy1480/p/10474046.html
@@ -2003,7 +2034,7 @@ plt.show()
 ```
 
 
-![svg](EDA_files/EDA_54_0.svg)
+![svg](EDA_files/EDA_56_0.svg)
 
 
 查看频数, 大于20000得值极少，其实这里也可以把这些当作特殊得值（异常值）直接用填充或者删掉，再前面进行
@@ -2016,7 +2047,7 @@ plt.show()
 ```
 
 
-![svg](EDA_files/EDA_56_0.svg)
+![svg](EDA_files/EDA_58_0.svg)
 
 
 ### 2.3.6 特征分为类别特征和数字特征，并对类别特征查看unique分布
@@ -2550,8 +2581,9 @@ for cat_fea in categorical_features:
     1.0    10789
     Name: gearbox, dtype: int64
     notRepairedDamage的特征分布如下：
-    notRepairedDamage特征有个2不同的值
+    notRepairedDamage特征有个3不同的值
     0.0    37249
+    -       8031
     1.0     4720
     Name: notRepairedDamage, dtype: int64
     regionCode的特征分布如下：
@@ -2880,7 +2912,7 @@ sns.heatmap(correlation,square = True,  vmax=0.8)
 
 
 
-![png](EDA_files/EDA_70_1.png)
+![png](EDA_files/EDA_72_1.png)
 
 
 
@@ -2928,7 +2960,7 @@ g = g.map(sns.distplot, "value")
 ```
 
 
-![png](EDA_files/EDA_73_0.png)
+![svg](EDA_files/EDA_75_0.svg)
 
 
 ####  可以看出匿名特征相对分布均匀
@@ -2943,7 +2975,7 @@ plt.show()
 ```
 
 
-![png](EDA_files/EDA_75_0.png)
+![png](EDA_files/EDA_77_0.png)
 
 
 
@@ -3082,7 +3114,7 @@ sns.regplot(x='v_13',y = 'price',data = v_13_scatter_plot,scatter= True, fit_reg
 
 
 
-![png](EDA_files/EDA_79_1.png)
+![png](EDA_files/EDA_81_1.png)
 
 
 ### 2.3.8 类别特征分析
@@ -3150,7 +3182,7 @@ g = g.map(boxplot, "value", "price")
 ```
 
 
-![png](EDA_files/EDA_83_0.png)
+![png](EDA_files/EDA_85_0.png)
 
 
 
@@ -3180,27 +3212,27 @@ for catg in catg_list :
 ```
 
 
-![png](EDA_files/EDA_85_0.png)
+![png](EDA_files/EDA_87_0.png)
 
 
 
-![png](EDA_files/EDA_85_1.png)
+![png](EDA_files/EDA_87_1.png)
 
 
 
-![png](EDA_files/EDA_85_2.png)
+![png](EDA_files/EDA_87_2.png)
 
 
 
-![png](EDA_files/EDA_85_3.png)
+![png](EDA_files/EDA_87_3.png)
 
 
 
-![png](EDA_files/EDA_85_4.png)
+![png](EDA_files/EDA_87_4.png)
 
 
 
-![png](EDA_files/EDA_85_5.png)
+![png](EDA_files/EDA_87_5.png)
 
 
 
@@ -3226,7 +3258,7 @@ g = g.map(bar_plot, "value", "price")
 ```
 
 
-![png](EDA_files/EDA_87_0.png)
+![png](EDA_files/EDA_89_0.png)
 
 
 
@@ -3243,7 +3275,7 @@ g = g.map(count_plot, "value")
 ```
 
 
-![png](EDA_files/EDA_88_0.png)
+![png](EDA_files/EDA_90_0.png)
 
 
 ### 2.3.9 用pandas_profiling生成数据报告
